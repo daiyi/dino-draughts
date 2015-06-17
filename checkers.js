@@ -21,11 +21,11 @@ function CheckerGame() {
   this.graphicBoard;
   this.player = DARK;
 
-  // a dom object referencing the piece selected to move
-  this.pieceSelected;
-
-  // array of dom object referencing 'squares' on game board for piece to move to
+  // array of jquery objects referencing 'squares' on game board for piece to move to
   this.moveStack = [];
+
+  // was the last move on moveStack a jump?
+  this.jumped = false;
 }
 
 function initializeGame(game) {
@@ -88,7 +88,6 @@ function drawBoard() {
 function resetBoard() {
   $('.square').removeClass('selected');
   pieceSelection();
-  game.pieceSelected = null;
   game.moveStack = [];
 }
 
@@ -101,9 +100,10 @@ function drawPieces(callback) {
   for (var y = 0; y < board.length; y++) {
     for (var x = 0; x < board.length; x++) {
       var piece = board[y][x];
+      var $piece = null;
 
       if (piece != EMPTY) {
-        var $piece = $('<div>', { class: 'piece'});
+        $piece = $('<div>', { class: 'piece'});
         switch (piece) {
           case LIGHT_KING:
             // TODO
@@ -116,8 +116,8 @@ function drawPieces(callback) {
             $piece.addClass('piece-dark');
             break;
         }
-        graphicBoard[y][x].html($piece);
       }
+      graphicBoard[y][x].html($piece);
     }
   }
   if (callback) {
@@ -131,16 +131,20 @@ function pieceSelection() {
 }
 
 function pieceSelected(e) {
-  game.pieceSelected = e.target;
-  game.moveStack.push(e.target);
-  highlightSquare(e.target);
+  var $target = $(e.target);
+  if ($target.hasClass('piece')) {
+    $target = $target.parent();
+  }
+
+  game.moveStack.push($target);
+  highlightSquare($target[0]);
   $('.piece').parent().unbind('click');
   squareSelection();
 }
 
 function squareSelection() {
   console.log('squareSelection');
-  squares = validMoves(game.moveStack, game.pieceSelected);
+  squares = validMoves(game.moveStack);
   squares.forEach(function($square){
     console.log('highlighting squares');
     $square.click(squareSelected);
@@ -148,12 +152,24 @@ function squareSelection() {
 }
 
 function squareSelected(e) {
-  game.moveStack.push(e.target);
+  var $target = $(e.target);
+  if ($target.hasClass('piece')) {
+    $target = $target.parent();
+  }
+
+  // if we just jumped, also add jumped square to moveStack
+  var $prev = game.moveStack[game.moveStack.length-1];
+  var jumped = (($target.data('y')+$prev.data('y')) % 2 == 0);
+  if (jumped) {
+    game.moveStack.push(game.graphicBoard[($target.data('y')-$prev.data('y'))/2][($target.data('x')-$prev.data('x'))/2]);
+  }
+
+  game.moveStack.push($target);
   highlightSquare(e.target);
   $('.square').unbind('click');
 
   // if last move was jump, allow another move
-  if (Math.abs(game.moveStack[game.moveStack.length-2].dataset.y - e.target.dataset.y) == 2) {
+  if (game.jumped == true) {
     squareSelection();
   }
 }
@@ -169,12 +185,24 @@ function highlightSquare(target) {
 
 function executeTurn() {
   // notate changes on game.board
-  // - remove captured pieces
+  var $square = $(game.moveStack.pop());
+  var x = $square.data('x');
+  var y = $square.data('y');
+  game.board[y][x] = game.player;
+
+  game.moveStack.forEach(function($square) {
+    console.log('CHANGING', square.data('x'), $square.data('y'));
+    game.board[$square.data('y')][$square.data('x')] = EMPTY;
+  });
+
+  // TODO - if on opposite side of board turn into king
 
   // switch to other player's turn
-  game.player += -1;
+  game.player *= -1;
 
   // draw board
+  drawPieces();
+  console.log(game.board);
 
   // if any player has no pieces, game over
 
@@ -182,13 +210,14 @@ function executeTurn() {
 }
 
 // returns an array of jquery objects of squares that are valid moves
-function validMoves(moveStack, piece) {
+function validMoves(moveStack) {
   var possibleMoveSquares = [];
   var fromSquare;
   var board = game.board;
   var graphicBoard = game.graphicBoard;
   var move = game.player;
-  var $from = $(moveStack[moveStack.length-1]).parent();
+  var $from = $(moveStack[moveStack.length-1]);
+  game.jumped = false;
 
   var x = $from.data('x');
   var y = $from.data('y');
@@ -204,7 +233,7 @@ function validMoves(moveStack, piece) {
         console.log('empty');
         possibleMoveSquares.push(graphicBoard[y+move][x+1]);
       }
-      // can we hop?
+      // can we jump?
       else if ((board[y+move][x+1] != game.player) && isOnBoard(y + move*2) && isOnBoard(x + 2) && board[y+move*2][x+2] == EMPTY) {
         console.log('hop');
         possibleMoveSquares.push(graphicBoard[y+move*2][x+2]);
@@ -216,7 +245,7 @@ function validMoves(moveStack, piece) {
         console.log('empty');
         possibleMoveSquares.push(graphicBoard[y+move][x-1]);
       }
-      // can we hop?
+      // can we jump?
       else if ((board[y+move][x-1] != game.player) && isOnBoard(y + move*2) && isOnBoard(x - 2) && board[y+move*2][x-2] == EMPTY) {
         console.log('hop');
         possibleMoveSquares.push(graphicBoard[y+move*2][x-2]);
