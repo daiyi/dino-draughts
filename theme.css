@@ -1,0 +1,34 @@
+body {
+  height: 100%;
+  margin: 0;
+}
+.board {
+  margin: auto;
+  background: #000;
+  line-height: 0;
+}
+.square {
+  margin: 0;
+  display: inline-block;
+}
+.square-light {
+  background: #eee;
+}
+.square-dark {
+  background: #9DE0D2;
+}
+.piece {
+  width: 90%;
+  height: 90%;
+  margin: 5%;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  border-radius: 50%;
+  background: #666;
+}
+.piece-light {
+  background: #B299F2;
+}
+.piece-dark {
+  background: #94438E;
+}
