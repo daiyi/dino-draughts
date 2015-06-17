@@ -40,7 +40,9 @@ function initializeGame(game) {
       // 'enter'
       case 13:
         console.log('pressed enter');
-        executeTurn();
+        if (game.moveStack.length > 1) {
+          executeTurn();
+        }
         break;
       // 'backspace'
       case 8:
@@ -161,7 +163,7 @@ function squareSelected(e) {
   var $prev = game.moveStack[game.moveStack.length-1];
   var jumped = (($target.data('y')+$prev.data('y')) % 2 == 0);
   if (jumped) {
-    game.moveStack.push(game.graphicBoard[($target.data('y')-$prev.data('y'))/2][($target.data('x')-$prev.data('x'))/2]);
+    game.moveStack.push(game.graphicBoard[($target.data('y')+$prev.data('y'))/2][($target.data('x')+$prev.data('x'))/2]);
   }
 
   game.moveStack.push($target);
@@ -191,7 +193,7 @@ function executeTurn() {
   game.board[y][x] = game.player;
 
   game.moveStack.forEach(function($square) {
-    console.log('CHANGING', square.data('x'), $square.data('y'));
+    console.log('CHANGING', $square.data('x'), $square.data('y'));
     game.board[$square.data('y')][$square.data('x')] = EMPTY;
   });
 
