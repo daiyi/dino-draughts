@@ -1,26 +1,31 @@
 var EMPTY = 0;
 var LIGHT = 1;
-var DARK = 2;
-var LIGHT_KING = 3;
-var DARK_KING = 4;
+var DARK = -1;
+var LIGHT_KING = 2;
+var DARK_KING = -2;
 
 var game = new CheckerGame();
 initializeGame(game);
 
 function CheckerGame() {
   this.board = [
-    [0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 0, 2, 0, 2, 0, 2, 0],
-    [0, 2, 0, 2, 0, 2, 0, 2],
-    [2, 0, 2, 0, 2, 0, 2, 0]
+    [ 0, 1, 0, 1, 0, 1, 0, 1],
+    [ 1, 0, 1, 0, 1, 0, 1, 0],
+    [ 0, 1, 0, 1, 0, 1, 0, 1],
+    [ 0, 0, 0, 0, 0, 0, 0, 0],
+    [ 0, 0, 0, 0, 0, 0, 0, 0],
+    [-1, 0,-1, 0,-1, 0,-1, 0],
+    [ 0,-1, 0,-1, 0,-1, 0,-1],
+    [-1, 0,-1, 0,-1, 0,-1, 0]
   ];
   this.graphicBoard;
   this.player = DARK;
+
+  // a dom object referencing the piece selected to move
   this.pieceSelected;
+
+  // array of dom object referencing 'squares' on game board for piece to move to
+  this.moveStack = [];
 }
 
 function initializeGame(game) {
@@ -67,7 +72,7 @@ function drawBoard() {
                                  height: squareRatio * 100  + '%',
                                  'data-x': x,
                                  'data-y': y });
-      if ((x + y) % 2 == 1) {
+      if ((x + y) % 2) {
         $square.addClass('square-dark');
       }
       else {
@@ -83,6 +88,8 @@ function drawBoard() {
 function resetBoard() {
   $('.square').removeClass('selected');
   pieceSelection();
+  game.pieceSelected = null;
+  game.moveStack = [];
 }
 
 function drawPieces(callback) {
@@ -125,13 +132,35 @@ function pieceSelection() {
 
 function pieceSelected(e) {
   game.pieceSelected = e.target;
-  squareSelected(e);
+  game.moveStack.push(e.target);
+  highlightSquare(e.target);
   $('.piece').parent().unbind('click');
+  squareSelection();
+}
+
+function squareSelection() {
+  console.log('squareSelection');
+  squares = validMoves(game.moveStack, game.pieceSelected);
+  squares.forEach(function($square){
+    console.log('highlighting squares');
+    $square.click(squareSelected);
+  });
 }
 
 function squareSelected(e) {
-  console.log(e.target);
-  var $target = $(e.target);
+  game.moveStack.push(e.target);
+  highlightSquare(e.target);
+  $('.square').unbind('click');
+
+  // if last move was jump, allow another move
+  if (Math.abs(game.moveStack[game.moveStack.length-2].dataset.y - e.target.dataset.y) == 2) {
+    squareSelection();
+  }
+}
+
+function highlightSquare(target) {
+  console.log(target);
+  var $target = $(target);
   if ($target.hasClass('piece')) {
     $target = $target.parent();
   }
@@ -140,11 +169,67 @@ function squareSelected(e) {
 
 function executeTurn() {
   // notate changes on game.board
+  // - remove captured pieces
 
   // switch to other player's turn
-  game.player = 3 - game.player;
+  game.player += -1;
 
   // draw board
+
+  // if any player has no pieces, game over
+
+  // if player can't move, game over
+}
+
+// returns an array of jquery objects of squares that are valid moves
+function validMoves(moveStack, piece) {
+  var possibleMoveSquares = [];
+  var fromSquare;
+  var board = game.board;
+  var graphicBoard = game.graphicBoard;
+  var move = game.player;
+  var $from = $(moveStack[moveStack.length-1]).parent();
+
+  var x = $from.data('x');
+  var y = $from.data('y');
+  console.log(x);
+  console.log(y);
+
+  // TODO clean this code it is literally the worst but I am low on time ): ):
+  if (isOnBoard(y + move)) {
+    console.log('forwards true');
+    if (isOnBoard(x + 1)) {
+      console.log('right true');
+      if (board[y+move][x+1] == EMPTY) {
+        console.log('empty');
+        possibleMoveSquares.push(graphicBoard[y+move][x+1]);
+      }
+      // can we hop?
+      else if ((board[y+move][x+1] != game.player) && isOnBoard(y + move*2) && isOnBoard(x + 2) && board[y+move*2][x+2] == EMPTY) {
+        console.log('hop');
+        possibleMoveSquares.push(graphicBoard[y+move*2][x+2]);
+      }
+    }
+    if (isOnBoard(x - 1)) {
+      console.log('left true');
+      if (board[y+move][x-1] == EMPTY) {
+        console.log('empty');
+        possibleMoveSquares.push(graphicBoard[y+move][x-1]);
+      }
+      // can we hop?
+      else if ((board[y+move][x-1] != game.player) && isOnBoard(y + move*2) && isOnBoard(x - 2) && board[y+move*2][x-2] == EMPTY) {
+        console.log('hop');
+        possibleMoveSquares.push(graphicBoard[y+move*2][x-2]);
+      }
+    }
+  }
+  // TODO if king, add possible backward squares
+  return possibleMoveSquares;
+}
+
+// returns true if z is valid x or y coordinate on board
+function isOnBoard (z) {
+  return (z < game.board.length) && (z >= 0);
 }
 
 function pieceCodeToColor(code) {
