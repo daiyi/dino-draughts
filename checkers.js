@@ -18,18 +18,40 @@ function CheckerGame() {
     [0, 2, 0, 2, 0, 2, 0, 2],
     [2, 0, 2, 0, 2, 0, 2, 0]
   ];
-
+  this.graphicBoard;
+  this.player = DARK;
+  this.pieceSelected;
 }
 
 function initializeGame(game) {
   var fitBoardToWindow = fitToWindowRatio('.board',  1);
   fitBoardToWindow();
   $(window).resize(fitBoardToWindow);
-  drawBoard(game);
-  drawPieces(game);
+  drawBoard();
+  drawPieces(pieceSelection);
+
+  $(document).keyup(function(e) {
+    switch (e.which) {
+      // 'enter'
+      case 13:
+        console.log('pressed enter');
+        executeTurn();
+        break;
+      // 'backspace'
+      case 8:
+        console.log('pressed backspace');
+      // 'esc'
+      case 27:
+        console.log('pressed esc');
+      // 'del'
+      case 46:
+        console.log('pressed del');
+        resetBoard();
+    }
+  });
 }
 
-function drawBoard(game) {
+function drawBoard() {
   var board = game.board;
   var graphicBoard = [];
   var unitLength = board.length;
@@ -58,10 +80,16 @@ function drawBoard(game) {
   game.graphicBoard = graphicBoard;
 }
 
-function drawPieces(game) {
-  console.log('drawing pieces');
+function resetBoard() {
+  $('.square').removeClass('selected');
+  pieceSelection();
+}
+
+function drawPieces(callback) {
   var graphicBoard = game.graphicBoard;
   var board = game.board;
+  resetBoard();
+  console.log('drawing pieces!');
 
   for (var y = 0; y < board.length; y++) {
     for (var x = 0; x < board.length; x++) {
@@ -71,21 +99,79 @@ function drawPieces(game) {
         var $piece = $('<div>', { class: 'piece'});
         switch (piece) {
           case LIGHT_KING:
-
+            // TODO
           case LIGHT:
-            $piece.addClass('.piece-light');
+            $piece.addClass('piece-light');
             break;
-
           case DARK_KING:
-
+            // TODO
           case DARK:
-            $piece.addClass('.piece-dark');
+            $piece.addClass('piece-dark');
             break;
         }
-        graphicBoard[y][x].append($piece);
+        graphicBoard[y][x].html($piece);
       }
-
     }
+  }
+  if (callback) {
+    callback();
+  }
+}
+
+function pieceSelection() {
+  console.log('.piece-' + pieceCodeToColor(game.player));
+  $('.piece-' + pieceCodeToColor(game.player)).parent().click(pieceSelected);
+}
+
+function pieceSelected(e) {
+  game.pieceSelected = e.target;
+  squareSelected(e);
+  $('.piece').parent().unbind('click');
+}
+
+function squareSelected(e) {
+  console.log(e.target);
+  var $target = $(e.target);
+  if ($target.hasClass('piece')) {
+    $target = $target.parent();
+  }
+  $target.addClass('selected');
+}
+
+function executeTurn() {
+  // notate changes on game.board
+
+  // switch to other player's turn
+  game.player = 3 - game.player;
+
+  // draw board
+}
+
+function pieceCodeToColor(code) {
+  switch (code) {
+    case EMPTY:
+      return 'empty';
+    case LIGHT_KING:
+    case LIGHT:
+      return 'light';
+    case DARK_KING:
+    case DARK:
+      return 'dark';
+  }
+}
+
+function pieceCodeToClass(code) {
+  switch (code) {
+    case EMPTY:
+      return '';
+    case LIGHT_KING:
+      return 'piece-light-king';
+    case LIGHT:
+      return 'piece-light';
+    case DARK_KING:
+      return 'piece-dark-king';
+    case DARK:
+      return 'piece-dark';
   }
 }
 

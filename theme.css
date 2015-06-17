@@ -26,9 +26,19 @@ body {
   border-radius: 50%;
   background: #666;
 }
+/* TODO add dinosaurs */
 .piece-light {
   background: #B299F2;
 }
+.piece-light-king {
+  
+}
 .piece-dark {
   background: #94438E;
+}
+.piece-dark-king {
+
+}
+.selected {
+  background: #00CC9D;
 }
